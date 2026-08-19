@@ -9,6 +9,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='24' fill='%2307080a'/><circle cx='50' cy='50' r='26' fill='none' stroke='white' stroke-width='8'/></svg>">
 <style>
+  /* ===== Dark (default, Raycast) ===== */
   :root {
     --bg: #07080a;
     --surface-1: #0d0d0d;
@@ -19,7 +20,8 @@
     --fg: #f5f5f5;
     --fg-secondary: #a3a3a8;
     --fg-muted: #6e6e73;
-    --white: #ffffff;
+    --cta-bg: #ffffff;
+    --cta-fg: #07080a;
     --green: #30d158;
     --green-dim: rgba(48,209,88,0.14);
     --red: #ff453a;
@@ -27,12 +29,38 @@
     --orange: #ff9f0a;
     --orange-dim: rgba(255,159,10,0.14);
     --blue: #0a84ff;
+    --glow: rgba(255,255,255,0.055);
+    --shadow-modal: 0 24px 80px rgba(0,0,0,0.6);
     --radius-card: 14px;
     --radius-sm: 10px;
   }
+  /* ===== Light ===== */
+  [data-theme="light"] {
+    --bg: #f7f7f8;
+    --surface-1: #ffffff;
+    --surface-2: #f5f5f6;
+    --surface-3: #ebebed;
+    --border: rgba(0,0,0,0.09);
+    --border-strong: rgba(0,0,0,0.18);
+    --fg: #1a1a1e;
+    --fg-secondary: #55555e;
+    --fg-muted: #8e8e96;
+    --cta-bg: #111114;
+    --cta-fg: #ffffff;
+    --green: #1d9e46;
+    --green-dim: rgba(52,199,89,0.13);
+    --red: #e0342b;
+    --red-dim: rgba(255,69,58,0.10);
+    --orange: #c77700;
+    --orange-dim: rgba(255,159,10,0.13);
+    --blue: #0071e3;
+    --glow: rgba(0,0,0,0.045);
+    --shadow-modal: 0 24px 80px rgba(0,0,0,0.18);
+  }
   * { box-sizing: border-box; margin: 0; padding: 0; }
-  ::selection { background: rgba(255,255,255,0.85); color: #07080a; }
+  ::selection { background: var(--cta-bg); color: var(--cta-fg); }
   html { color-scheme: dark; }
+  [data-theme="light"] { color-scheme: light; }
   body {
     font-family: 'Inter', -apple-system, 'PingFang SC', 'Segoe UI', Roboto, sans-serif;
     font-feature-settings: "calt", "kern", "liga", "ss03";
@@ -40,15 +68,71 @@
     color: var(--fg);
     min-height: 100vh;
     -webkit-font-smoothing: antialiased;
-    background-image: radial-gradient(ellipse 80% 40% at 50% -10%, rgba(255,255,255,0.055), transparent);
+    background-image: radial-gradient(ellipse 80% 40% at 50% -10%, var(--glow), transparent);
     background-repeat: no-repeat;
+    transition: background-color 0.25s ease, color 0.25s ease;
   }
   .container { max-width: 880px; margin: 0 auto; padding: 32px 20px 60px; }
 
-  /* Top bar */
+  /* ===== Auth screen ===== */
+  .auth-wrap {
+    min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px;
+  }
+  .auth-card {
+    width: 100%; max-width: 380px;
+    background: var(--surface-1); border: 1px solid var(--border);
+    border-radius: 18px; padding: 32px 28px;
+    box-shadow: var(--shadow-modal);
+  }
+  .auth-logo {
+    width: 44px; height: 44px; border-radius: 12px; margin-bottom: 18px;
+    background: var(--cta-bg); color: var(--cta-fg);
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 800; font-size: 20px;
+  }
+  .auth-card h1 { font-size: 21px; font-weight: 800; letter-spacing: -0.02em; margin-bottom: 4px; }
+  .auth-card .sub { color: var(--fg-muted); font-size: 13px; margin-bottom: 22px; }
+  .auth-tabs {
+    display: flex; gap: 4px; background: var(--surface-2); border: 1px solid var(--border);
+    border-radius: 999px; padding: 4px; margin-bottom: 20px;
+  }
+  .auth-tab {
+    flex: 1; padding: 8px; border: none; border-radius: 999px; background: transparent;
+    color: var(--fg-muted); font-size: 13.5px; font-weight: 600; cursor: pointer;
+    transition: all 0.15s ease; font-family: inherit; font-feature-settings: inherit;
+  }
+  .auth-tab.active { background: var(--cta-bg); color: var(--cta-fg); }
+  .auth-field { margin-bottom: 14px; }
+  .auth-field label {
+    display: block; font-size: 11.5px; font-weight: 600; margin-bottom: 7px;
+    color: var(--fg-secondary); text-transform: uppercase; letter-spacing: 0.05em;
+  }
+  .auth-field input {
+    width: 100%; padding: 11px 14px; border-radius: 999px;
+    border: 1px solid var(--border); background: var(--surface-2); color: var(--fg);
+    font-size: 14px; font-family: inherit; font-feature-settings: inherit; outline: none;
+    transition: border-color 0.15s ease;
+  }
+  .auth-field input:focus { border-color: var(--border-strong); }
+  .auth-error {
+    display: none; font-size: 12.5px; color: var(--red);
+    background: var(--red-dim); border: 1px solid rgba(255,69,58,0.3);
+    border-radius: 999px; padding: 7px 13px; margin-bottom: 14px;
+  }
+  .auth-error.show { display: block; }
+  .auth-submit {
+    width: 100%; padding: 11px; border: none; border-radius: 999px;
+    background: var(--cta-bg); color: var(--cta-fg);
+    font-size: 14px; font-weight: 700; cursor: pointer; margin-top: 4px;
+    transition: opacity 0.15s ease; font-family: inherit; font-feature-settings: inherit;
+  }
+  .auth-submit:hover { opacity: 0.88; }
+  .auth-foot { text-align: center; color: var(--fg-muted); font-size: 11.5px; margin-top: 20px; }
+
+  /* ===== Top bar ===== */
   .topbar {
     display: flex; align-items: center; justify-content: space-between;
-    margin-bottom: 40px;
+    margin-bottom: 40px; gap: 10px;
   }
   .brand {
     display: flex; align-items: center; gap: 10px;
@@ -56,17 +140,45 @@
   }
   .brand-mark {
     width: 28px; height: 28px; border-radius: 8px;
-    background: var(--white); color: #07080a;
+    background: var(--cta-bg); color: var(--cta-fg);
     display: flex; align-items: center; justify-content: center;
     font-weight: 800; font-size: 13px;
   }
+  .topbar-right { display: flex; align-items: center; gap: 8px; }
+  .icon-btn {
+    width: 34px; height: 34px; border-radius: 999px;
+    background: var(--surface-2); border: 1px solid var(--border);
+    color: var(--fg-secondary); cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: all 0.15s ease; font-size: 15px;
+  }
+  .icon-btn:hover { border-color: var(--border-strong); color: var(--fg); }
+  .icon-btn svg { width: 16px; height: 16px; }
+  .user-pill {
+    display: flex; align-items: center; gap: 7px;
+    font-size: 13px; font-weight: 600;
+    background: var(--surface-2); border: 1px solid var(--border);
+    border-radius: 999px; padding: 7px 8px 7px 13px; color: var(--fg-secondary);
+  }
+  .user-avatar {
+    width: 20px; height: 20px; border-radius: 99px;
+    background: var(--cta-bg); color: var(--cta-fg);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 10.5px; font-weight: 800; text-transform: uppercase;
+  }
+  .logout-btn {
+    border: none; background: transparent; color: var(--fg-muted);
+    cursor: pointer; font-size: 11.5px; font-weight: 600; padding: 3px 6px;
+    border-radius: 6px; font-family: inherit; font-feature-settings: inherit;
+  }
+  .logout-btn:hover { color: var(--red); }
   .today-pill {
     font-size: 13px; font-weight: 500; color: var(--fg-secondary);
     background: var(--surface-2); border: 1px solid var(--border);
-    border-radius: 999px; padding: 6px 14px;
+    border-radius: 999px; padding: 6px 14px; white-space: nowrap;
   }
 
-  /* Hero */
+  /* ===== Hero ===== */
   .hero { margin-bottom: 36px; }
   .hero h1 {
     font-size: clamp(30px, 5vw, 44px);
@@ -76,10 +188,8 @@
   .hero h1 .dim { color: var(--fg-muted); }
   .hero p { color: var(--fg-secondary); font-size: 15px; line-height: 1.6; max-width: 560px; }
 
-  /* Legend */
-  .legend {
-    display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 24px;
-  }
+  /* ===== Legend ===== */
+  .legend { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 24px; }
   .legend-item {
     display: flex; align-items: center; gap: 7px; font-size: 12.5px;
     color: var(--fg-secondary); font-weight: 500;
@@ -87,17 +197,18 @@
     border-radius: 999px; padding: 5px 12px 5px 8px;
   }
   .legend-dot { width: 8px; height: 8px; border-radius: 99px; }
-  .legend-dot.green { background: var(--green); box-shadow: 0 0 8px rgba(48,209,88,0.5); }
-  .legend-dot.orange { background: var(--orange); box-shadow: 0 0 8px rgba(255,159,10,0.5); }
-  .legend-dot.red { background: var(--red); box-shadow: 0 0 8px rgba(255,69,58,0.5); }
+  .legend-dot.green { background: var(--green); box-shadow: 0 0 8px var(--green-dim); }
+  .legend-dot.orange { background: var(--orange); box-shadow: 0 0 8px var(--orange-dim); }
+  .legend-dot.red { background: var(--red); box-shadow: 0 0 8px var(--red-dim); }
 
-  /* Month section */
+  /* ===== Month section ===== */
   .month-section {
     background: var(--surface-1);
     border: 1px solid var(--border);
     border-radius: var(--radius-card);
     padding: 22px;
     margin-bottom: 18px;
+    transition: background-color 0.25s ease, border-color 0.25s ease;
   }
   .month-title {
     font-size: 16px; font-weight: 700; letter-spacing: -0.01em;
@@ -109,7 +220,7 @@
     color: var(--fg-secondary); font-weight: 500;
   }
 
-  /* Calendar */
+  /* ===== Calendar ===== */
   .calendar { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; }
   .cal-header {
     text-align: center; font-size: 11px; font-weight: 600;
@@ -125,31 +236,32 @@
   .day-cell:hover { border-color: var(--border-strong); background: var(--surface-3); transform: translateY(-1px); }
   .day-cell.empty { border: none; background: transparent; cursor: default; }
   .day-cell.empty:hover { transform: none; }
-  .day-cell.today { border: 1.5px solid rgba(255,255,255,0.5); }
+  .day-cell.today { border: 1.5px solid var(--border-strong); }
   .day-cell.today::after {
     content: ''; position: absolute; top: 6px; right: 6px;
-    width: 5px; height: 5px; border-radius: 99px; background: var(--white);
+    width: 5px; height: 5px; border-radius: 99px; background: var(--fg);
   }
   .day-num { font-weight: 600; font-variant-numeric: tabular-nums; }
   .day-env { font-size: 9px; margin-top: 3px; font-weight: 600; letter-spacing: 0.04em; }
 
-  .day-cell.full { background: var(--green-dim); border-color: rgba(48,209,88,0.4); }
+  .day-cell.full { background: var(--green-dim); border-color: var(--green); }
   .day-cell.full .day-num { color: var(--green); }
-  .day-cell.full .day-env { color: rgba(48,209,88,0.75); }
-  .day-cell.partial { background: var(--orange-dim); border-color: rgba(255,159,10,0.4); }
+  .day-cell.full .day-env { color: var(--green); opacity: 0.75; }
+  .day-cell.partial { background: var(--orange-dim); border-color: var(--orange); }
   .day-cell.partial .day-num { color: var(--orange); }
-  .day-cell.partial .day-env { color: rgba(255,159,10,0.75); }
-  .day-cell.none { background: var(--red-dim); border-color: rgba(255,69,58,0.4); }
+  .day-cell.partial .day-env { color: var(--orange); opacity: 0.75; }
+  .day-cell.none { background: var(--red-dim); border-color: var(--red); }
   .day-cell.none .day-num { color: var(--red); }
-  .day-cell.none .day-env { color: rgba(255,69,58,0.75); }
+  .day-cell.none .day-env { color: var(--red); opacity: 0.75; }
 
   .day-cell.future { opacity: 0.3; cursor: not-allowed; }
   .day-cell.future:hover { transform: none; border-color: var(--border); background: var(--surface-2); }
 
-  /* Stats */
+  /* ===== Stats ===== */
   .stats-section {
     background: var(--surface-1); border: 1px solid var(--border);
     border-radius: var(--radius-card); padding: 26px; margin-top: 28px;
+    transition: background-color 0.25s ease, border-color 0.25s ease;
   }
   .stats-section h2 { font-size: 17px; font-weight: 700; letter-spacing: -0.01em; margin-bottom: 18px; }
   .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 10px; margin-bottom: 22px; }
@@ -162,7 +274,7 @@
 
   .env-breakdown { border-top: 1px solid var(--border); padding-top: 18px; }
   .env-breakdown h3 { font-size: 13px; margin-bottom: 12px; color: var(--fg-secondary); font-weight: 600; }
-  .env-row { display: flex; align-items: center; justify-content: space-between; padding: 7px 0; border-bottom: 1px solid rgba(255,255,255,0.05); gap: 10px; }
+  .env-row { display: flex; align-items: center; justify-content: space-between; padding: 7px 0; border-bottom: 1px solid var(--border); gap: 10px; }
   .env-row:last-child { border-bottom: none; }
   .env-label { font-size: 14px; font-weight: 600; display: flex; align-items: center; gap: 8px; white-space: nowrap; }
   .env-flag {
@@ -171,38 +283,39 @@
   }
   .env-bars { display: flex; gap: 10px; align-items: center; }
   .env-mini { font-size: 11.5px; font-weight: 600; font-variant-numeric: tabular-nums; }
-  .env-bar-track { width: 90px; height: 5px; background: rgba(255,255,255,0.08); border-radius: 99px; overflow: hidden; }
-  .env-bar-fill { height: 100%; background: var(--white); border-radius: 99px; }
+  .env-bar-track { width: 90px; height: 5px; background: var(--surface-3); border-radius: 99px; overflow: hidden; }
+  .env-bar-fill { height: 100%; background: var(--fg); border-radius: 99px; }
   .env-bar-num { font-size: 13px; font-weight: 700; min-width: 22px; text-align: right; font-variant-numeric: tabular-nums; }
 
   .recent-entries { margin-top: 22px; border-top: 1px solid var(--border); padding-top: 18px; }
   .recent-entries h3 { font-size: 13px; margin-bottom: 12px; color: var(--fg-secondary); font-weight: 600; }
   .entry-row {
     display: flex; align-items: center; gap: 12px; padding: 8px 0;
-    font-size: 13.5px; border-bottom: 1px solid rgba(255,255,255,0.05); flex-wrap: wrap;
+    font-size: 13.5px; border-bottom: 1px solid var(--border); flex-wrap: wrap;
   }
   .entry-row:last-child { border-bottom: none; }
   .entry-date { font-weight: 600; min-width: 96px; font-variant-numeric: tabular-nums; }
   .entry-status { display: flex; gap: 6px; }
   .status-tag {
-    font-size: 11px; padding: 3px 9px; border-radius: 99px; font-weight: 600;
+    font-size: 11px; padding: 3px 9px; border-radius: 999px; font-weight: 600;
     border: 1px solid transparent;
   }
-  .status-tag.ok { background: var(--green-dim); color: var(--green); border-color: rgba(48,209,88,0.3); }
-  .status-tag.no { background: var(--red-dim); color: var(--red); border-color: rgba(255,69,58,0.3); }
+  .status-tag.ok { background: var(--green-dim); color: var(--green); border-color: var(--green-dim); }
+  .status-tag.no { background: var(--red-dim); color: var(--red); border-color: var(--red-dim); }
   .entry-env { margin-left: auto; font-size: 12px; color: var(--fg-secondary); font-weight: 500; }
 
-  /* Modal */
+  /* ===== Modal ===== */
   .modal-overlay {
     display: none; position: fixed; inset: 0;
     background: rgba(0,0,0,0.65); backdrop-filter: blur(8px);
     z-index: 1000; justify-content: center; align-items: center; padding: 20px;
   }
+  [data-theme="light"] .modal-overlay { background: rgba(0,0,0,0.35); }
   .modal-overlay.active { display: flex; }
   .modal {
     background: var(--surface-1); border: 1px solid var(--border-strong);
     border-radius: 18px; padding: 28px; width: 100%; max-width: 420px;
-    box-shadow: 0 24px 80px rgba(0,0,0,0.6);
+    box-shadow: var(--shadow-modal);
     animation: modalIn 0.18s ease;
   }
   @keyframes modalIn { from { opacity: 0; transform: translateY(8px) scale(0.98); } to { opacity: 1; transform: none; } }
@@ -221,9 +334,9 @@
     font-family: inherit; font-feature-settings: inherit;
   }
   .btn-toggle:hover { border-color: var(--border-strong); color: var(--fg); }
-  .btn-toggle.selected.yes { background: var(--white); color: #07080a; border-color: var(--white); }
-  .btn-toggle.selected.no { background: var(--red-dim); color: var(--red); border-color: rgba(255,69,58,0.5); }
-  .btn-toggle.env.selected { background: var(--white); color: #07080a; border-color: var(--white); }
+  .btn-toggle.selected.yes { background: var(--cta-bg); color: var(--cta-fg); border-color: var(--cta-bg); }
+  .btn-toggle.selected.no { background: var(--red-dim); color: var(--red); border-color: var(--red); }
+  .btn-toggle.env.selected { background: var(--cta-bg); color: var(--cta-fg); border-color: var(--cta-bg); }
   .env-group { flex-wrap: wrap; }
   .env-group .btn-toggle { min-width: calc(50% - 4px); flex: 1 1 calc(50% - 4px); }
 
@@ -233,33 +346,78 @@
     font-size: 14px; font-weight: 600; cursor: pointer; transition: all 0.15s ease;
     font-family: inherit; font-feature-settings: inherit;
   }
-  .btn-primary { background: var(--white); color: #07080a; }
-  .btn-primary:hover { background: rgba(255,255,255,0.88); }
+  .btn-primary { background: var(--cta-bg); color: var(--cta-fg); }
+  .btn-primary:hover { opacity: 0.88; }
   .btn-secondary { background: var(--surface-2); color: var(--fg-secondary); border: 1px solid var(--border); }
   .btn-secondary:hover { color: var(--fg); border-color: var(--border-strong); }
-  .btn-danger { background: transparent; color: var(--red); border: 1px solid rgba(255,69,58,0.4); }
+  .btn-danger { background: transparent; color: var(--red); border: 1px solid var(--red); }
   .btn-danger:hover { background: var(--red-dim); }
 
   .footer {
     margin-top: 48px; text-align: center; color: var(--fg-muted); font-size: 12.5px;
   }
-  .footer a { color: var(--fg-secondary); text-decoration: none; }
-  .footer a:hover { color: var(--fg); }
+  .footer .ver {
+    display: inline-block; margin-top: 6px; font-size: 11px;
+    background: var(--surface-2); border: 1px solid var(--border);
+    border-radius: 999px; padding: 3px 10px; font-weight: 600;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .hidden { display: none !important; }
 
   @media (max-width: 600px) {
     .day-cell { min-height: 42px; font-size: 11px; }
     .day-env { font-size: 8px; }
     .hero h1 { font-size: 30px; }
     .stats-grid { grid-template-columns: repeat(2, 1fr); }
-    .topbar { flex-direction: column; gap: 12px; align-items: flex-start; }
+    .today-pill { display: none; }
   }
 </style>
 </head>
 <body>
-<div class="container">
+
+<!-- ===== Auth screen ===== -->
+<div class="auth-wrap" id="authScreen">
+  <div class="auth-card">
+    <div class="auth-logo">C</div>
+    <h1>Copilot Check-in</h1>
+    <div class="sub">Copilot × Outlook 可用性打卡</div>
+    <div class="auth-tabs">
+      <button class="auth-tab active" id="tabLogin" onclick="switchAuth('login')">登录</button>
+      <button class="auth-tab" id="tabReg" onclick="switchAuth('reg')">注册</button>
+    </div>
+    <div class="auth-error" id="authError"></div>
+    <form id="authForm" onsubmit="return handleAuth(event)">
+      <div class="auth-field">
+        <label for="authUser">用户名</label>
+        <input type="text" id="authUser" autocomplete="username" placeholder="3-20 个字符" maxlength="20" required>
+      </div>
+      <div class="auth-field">
+        <label for="authPass">密码</label>
+        <input type="password" id="authPass" autocomplete="current-password" placeholder="至少 4 位" required>
+      </div>
+      <button type="submit" class="auth-submit" id="authSubmit">登录</button>
+    </form>
+    <div class="auth-foot">数据仅保存在本浏览器 · copilot.slashbro.top</div>
+  </div>
+</div>
+
+<!-- ===== Main app ===== -->
+<div class="container hidden" id="appScreen">
   <div class="topbar">
     <div class="brand"><div class="brand-mark">C</div> Copilot Check-in</div>
-    <div class="today-pill" id="todayPill"></div>
+    <div class="topbar-right">
+      <div class="today-pill" id="todayPill"></div>
+      <button class="icon-btn" id="themeToggle" onclick="toggleTheme()" title="切换白天/黑夜模式" aria-label="切换主题">
+        <svg id="iconMoon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
+        <svg id="iconSun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>
+      </button>
+      <div class="user-pill">
+        <span class="user-avatar" id="userAvatar"></span>
+        <span id="userName"></span>
+        <button class="logout-btn" onclick="logout()">退出</button>
+      </div>
+    </div>
   </div>
 
   <div class="hero">
@@ -282,9 +440,13 @@
     <div class="recent-entries" id="recentEntries"></div>
   </div>
 
-  <div class="footer">数据保存在本地浏览器 · copilot.slashbro.top</div>
+  <div class="footer">
+    数据保存在本地浏览器 · copilot.slashbro.top
+    <br><span class="ver" id="versionTag"></span>
+  </div>
 </div>
 
+<!-- ===== Check-in modal ===== -->
 <div class="modal-overlay" id="modalOverlay">
   <div class="modal">
     <h3 id="modalTitle">打卡</h3>
@@ -315,18 +477,143 @@
 </div>
 
 <script>
-var STORAGE_KEY = 'copilot_outlook_checkin';
+/* ===== Config & constants ===== */
+var APP_VERSION = '1.1.0';
+var LEGACY_KEY = 'copilot_outlook_checkin';          // v1.0 anonymous data
+var LEGACY_BACKUP_KEY = 'copilot_outlook_checkin_backup_v1';
+var USERS_KEY = 'copilot_users';
+var SESSION_KEY = 'copilot_session';
+var THEME_KEY = 'copilot_theme';
+function dataKey(user) { return 'copilot_checkin_data_' + user; }
+
 var ENV_CODES = { '国内': 'CN', '美国': 'US', '墨西哥': 'MX', '欧洲': 'EU' };
 var WEEKDAYS = ['日','一','二','三','四','五','六'];
 var MONTH_NAMES = ['一月','二月','三月','四月','五月','六月','七月','八月','九月','十月','十一月','十二月'];
-var records = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
+
+/* ===== State ===== */
+var currentUser = null;
+var records = {};
 var currentDate = new Date();
 var modalState = { dateKey: '', app: null, web: null, env: null };
+var authMode = 'login';
 
+/* ===== Helpers ===== */
 function pad(n) { return String(n).padStart(2, '0'); }
 function dateKey(y, m, d) { return y + '-' + pad(m+1) + '-' + pad(d); }
 function formatDateCN(y, m, d) { return y + '年' + (m+1) + '月' + d + '日'; }
-function saveRecords() { localStorage.setItem(STORAGE_KEY, JSON.stringify(records)); }
+function lsGet(k) { try { return JSON.parse(localStorage.getItem(k) || 'null'); } catch (e) { return null; } }
+function lsSet(k, v) { localStorage.setItem(k, JSON.stringify(v)); }
+
+async function sha256Hex(text) {
+  if (window.crypto && crypto.subtle) {
+    var buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(text));
+    return Array.from(new Uint8Array(buf)).map(function(b) { return b.toString(16).padStart(2,'0'); }).join('');
+  }
+  // fallback (non-secure context): simple djb2, only to avoid hard failure
+  var h = 5381;
+  for (var i = 0; i < text.length; i++) h = ((h << 5) + h + text.charCodeAt(i)) >>> 0;
+  return 'fb' + h.toString(16);
+}
+
+/* ===== Theme ===== */
+function applyTheme(theme) {
+  document.documentElement.setAttribute('data-theme', theme);
+  document.getElementById('iconMoon').style.display = theme === 'dark' ? 'block' : 'none';
+  document.getElementById('iconSun').style.display = theme === 'light' ? 'block' : 'none';
+}
+function toggleTheme() {
+  var next = document.documentElement.getAttribute('data-theme') === 'light' ? 'dark' : 'light';
+  lsSet(THEME_KEY, next);
+  applyTheme(next);
+}
+(function initTheme() {
+  var saved = lsGet(THEME_KEY);
+  applyTheme(saved === 'light' ? 'light' : 'dark');
+})();
+
+/* ===== Auth ===== */
+function switchAuth(mode) {
+  authMode = mode;
+  document.getElementById('tabLogin').classList.toggle('active', mode === 'login');
+  document.getElementById('tabReg').classList.toggle('active', mode === 'reg');
+  document.getElementById('authSubmit').textContent = mode === 'login' ? '登录' : '创建账号';
+  document.getElementById('authUser').parentElement.querySelector('label').textContent = '用户名';
+  hideAuthError();
+}
+function showAuthError(msg) {
+  var el = document.getElementById('authError');
+  el.textContent = msg;
+  el.classList.add('show');
+}
+function hideAuthError() { document.getElementById('authError').classList.remove('show'); }
+
+async function handleAuth(e) {
+  e.preventDefault();
+  var user = document.getElementById('authUser').value.trim();
+  var pass = document.getElementById('authPass').value;
+  if (!/^[a-zA-Z0-9_\u4e00-\u9fa5-]{2,20}$/.test(user)) { showAuthError('用户名需 2-20 个字符（字母、数字、下划线、中文）'); return false; }
+  if (pass.length < 4) { showAuthError('密码至少 4 位'); return false; }
+
+  var users = lsGet(USERS_KEY) || {};
+  var lowerUser = user.toLowerCase();
+
+  if (authMode === 'reg') {
+    if (users[lowerUser]) { showAuthError('用户名已存在，请直接登录'); return false; }
+    var salt = Array.from(crypto.getRandomValues(new Uint8Array(16))).map(function(b) { return b.toString(16).padStart(2,'0'); }).join('');
+    var hash = await sha256Hex(salt + pass);
+    users[lowerUser] = { name: user, salt: salt, hash: hash, created: Date.now() };
+    lsSet(USERS_KEY, users);
+    // migrate legacy anonymous data to first registered user
+    var legacy = lsGet(LEGACY_KEY);
+    if (legacy && Object.keys(legacy).length && !lsGet(dataKey(lowerUser))) {
+      lsSet(dataKey(lowerUser), legacy);
+      lsSet(LEGACY_BACKUP_KEY, legacy);
+      localStorage.removeItem(LEGACY_KEY);
+    }
+    loginAs(lowerUser, users[lowerUser]);
+  } else {
+    var rec = users[lowerUser];
+    if (!rec) { showAuthError('用户不存在，请先注册'); return false; }
+    var hash = await sha256Hex(rec.salt + pass);
+    if (hash !== rec.hash) { showAuthError('密码错误'); return false; }
+    loginAs(lowerUser, rec);
+  }
+  return false;
+}
+
+function loginAs(lowerUser, rec) {
+  currentUser = { id: lowerUser, name: rec.name };
+  lsSet(SESSION_KEY, { user: lowerUser, ts: Date.now() });
+  records = lsGet(dataKey(lowerUser)) || {};
+  document.getElementById('userName').textContent = rec.name;
+  document.getElementById('userAvatar').textContent = rec.name.charAt(0);
+  document.getElementById('authScreen').classList.add('hidden');
+  document.getElementById('appScreen').classList.remove('hidden');
+  renderAll();
+}
+
+function logout() {
+  if (!confirm('退出登录？（打卡数据已自动保存）')) return;
+  currentUser = null;
+  localStorage.removeItem(SESSION_KEY);
+  document.getElementById('appScreen').classList.add('hidden');
+  document.getElementById('authScreen').classList.remove('hidden');
+  document.getElementById('authPass').value = '';
+  switchAuth('login');
+}
+
+function saveRecords() { if (currentUser) lsSet(dataKey(currentUser.id), records); }
+
+/* ===== Session restore ===== */
+(function restoreSession() {
+  var session = lsGet(SESSION_KEY);
+  if (!session || !session.user) return;
+  var users = lsGet(USERS_KEY) || {};
+  var rec = users[session.user];
+  if (rec) loginAs(session.user, rec);
+})();
+
+/* ===== Calendar & stats (unchanged logic) ===== */
 function isToday(y, m, d) { var t = new Date(); return y === t.getFullYear() && m === t.getMonth() && d === t.getDate(); }
 function isFuture(y, m, d) { var t = new Date(); t.setHours(0,0,0,0); return new Date(y, m, d) > t; }
 function getDayStatus(rec) {
@@ -481,7 +768,7 @@ function renderStats() {
     '<div class="stat-card"><div class="num" style="color:var(--green)">' + bothOk + '</div><div class="label">两个都可用</div></div>' +
     '<div class="stat-card"><div class="num" style="color:var(--orange)">' + partial + '</div><div class="label">部分可用</div></div>' +
     '<div class="stat-card"><div class="num" style="color:var(--red)">' + noneOk + '</div><div class="label">都不可用</div></div>' +
-    '<div class="stat-card"><div class="num" style="color:var(--white)">' + total + '</div><div class="label">总打卡天数</div></div>' +
+    '<div class="stat-card"><div class="num">' + total + '</div><div class="label">总打卡天数</div></div>' +
     '<div class="stat-card"><div class="num" style="color:var(--blue)">' + appOkCount + '</div><div class="label">App 可用天数</div></div>' +
     '<div class="stat-card"><div class="num" style="color:var(--blue)">' + webOkCount + '</div><div class="label">网页版可用天数</div></div>';
 
@@ -521,7 +808,10 @@ function renderStats() {
 }
 
 function renderAll() { renderToday(); renderCalendars(); renderStats(); }
-renderAll();
+
+/* ===== Version tag ===== */
+document.getElementById('versionTag').textContent = 'v' + APP_VERSION;
+document.title = 'Copilot × Outlook 可用性打卡 v' + APP_VERSION;
 </script>
 </body>
 </html>
