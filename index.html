@@ -1,0 +1,527 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Copilot × Outlook 可用性打卡</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='24' fill='%2307080a'/><circle cx='50' cy='50' r='26' fill='none' stroke='white' stroke-width='8'/></svg>">
+<style>
+  :root {
+    --bg: #07080a;
+    --surface-1: #0d0d0d;
+    --surface-2: #101111;
+    --surface-3: #121212;
+    --border: rgba(255,255,255,0.09);
+    --border-strong: rgba(255,255,255,0.16);
+    --fg: #f5f5f5;
+    --fg-secondary: #a3a3a8;
+    --fg-muted: #6e6e73;
+    --white: #ffffff;
+    --green: #30d158;
+    --green-dim: rgba(48,209,88,0.14);
+    --red: #ff453a;
+    --red-dim: rgba(255,69,58,0.14);
+    --orange: #ff9f0a;
+    --orange-dim: rgba(255,159,10,0.14);
+    --blue: #0a84ff;
+    --radius-card: 14px;
+    --radius-sm: 10px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  ::selection { background: rgba(255,255,255,0.85); color: #07080a; }
+  html { color-scheme: dark; }
+  body {
+    font-family: 'Inter', -apple-system, 'PingFang SC', 'Segoe UI', Roboto, sans-serif;
+    font-feature-settings: "calt", "kern", "liga", "ss03";
+    background: var(--bg);
+    color: var(--fg);
+    min-height: 100vh;
+    -webkit-font-smoothing: antialiased;
+    background-image: radial-gradient(ellipse 80% 40% at 50% -10%, rgba(255,255,255,0.055), transparent);
+    background-repeat: no-repeat;
+  }
+  .container { max-width: 880px; margin: 0 auto; padding: 32px 20px 60px; }
+
+  /* Top bar */
+  .topbar {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 40px;
+  }
+  .brand {
+    display: flex; align-items: center; gap: 10px;
+    font-weight: 700; font-size: 15px; letter-spacing: -0.01em;
+  }
+  .brand-mark {
+    width: 28px; height: 28px; border-radius: 8px;
+    background: var(--white); color: #07080a;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 800; font-size: 13px;
+  }
+  .today-pill {
+    font-size: 13px; font-weight: 500; color: var(--fg-secondary);
+    background: var(--surface-2); border: 1px solid var(--border);
+    border-radius: 999px; padding: 6px 14px;
+  }
+
+  /* Hero */
+  .hero { margin-bottom: 36px; }
+  .hero h1 {
+    font-size: clamp(30px, 5vw, 44px);
+    font-weight: 800; letter-spacing: -0.035em; line-height: 1.08;
+    margin-bottom: 12px;
+  }
+  .hero h1 .dim { color: var(--fg-muted); }
+  .hero p { color: var(--fg-secondary); font-size: 15px; line-height: 1.6; max-width: 560px; }
+
+  /* Legend */
+  .legend {
+    display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 24px;
+  }
+  .legend-item {
+    display: flex; align-items: center; gap: 7px; font-size: 12.5px;
+    color: var(--fg-secondary); font-weight: 500;
+    background: var(--surface-1); border: 1px solid var(--border);
+    border-radius: 999px; padding: 5px 12px 5px 8px;
+  }
+  .legend-dot { width: 8px; height: 8px; border-radius: 99px; }
+  .legend-dot.green { background: var(--green); box-shadow: 0 0 8px rgba(48,209,88,0.5); }
+  .legend-dot.orange { background: var(--orange); box-shadow: 0 0 8px rgba(255,159,10,0.5); }
+  .legend-dot.red { background: var(--red); box-shadow: 0 0 8px rgba(255,69,58,0.5); }
+
+  /* Month section */
+  .month-section {
+    background: var(--surface-1);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-card);
+    padding: 22px;
+    margin-bottom: 18px;
+  }
+  .month-title {
+    font-size: 16px; font-weight: 700; letter-spacing: -0.01em;
+    margin-bottom: 16px; display: flex; align-items: center; gap: 10px;
+  }
+  .month-title .badge {
+    font-size: 11.5px; padding: 3px 10px; border-radius: 999px;
+    background: var(--surface-3); border: 1px solid var(--border);
+    color: var(--fg-secondary); font-weight: 500;
+  }
+
+  /* Calendar */
+  .calendar { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; }
+  .cal-header {
+    text-align: center; font-size: 11px; font-weight: 600;
+    color: var(--fg-muted); padding: 6px 0; text-transform: uppercase; letter-spacing: 0.06em;
+  }
+  .day-cell {
+    aspect-ratio: 1; border-radius: var(--radius-sm);
+    border: 1px solid var(--border);
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    cursor: pointer; transition: all 0.15s ease; font-size: 13px;
+    background: var(--surface-2); min-height: 54px; position: relative;
+  }
+  .day-cell:hover { border-color: var(--border-strong); background: var(--surface-3); transform: translateY(-1px); }
+  .day-cell.empty { border: none; background: transparent; cursor: default; }
+  .day-cell.empty:hover { transform: none; }
+  .day-cell.today { border: 1.5px solid rgba(255,255,255,0.5); }
+  .day-cell.today::after {
+    content: ''; position: absolute; top: 6px; right: 6px;
+    width: 5px; height: 5px; border-radius: 99px; background: var(--white);
+  }
+  .day-num { font-weight: 600; font-variant-numeric: tabular-nums; }
+  .day-env { font-size: 9px; margin-top: 3px; font-weight: 600; letter-spacing: 0.04em; }
+
+  .day-cell.full { background: var(--green-dim); border-color: rgba(48,209,88,0.4); }
+  .day-cell.full .day-num { color: var(--green); }
+  .day-cell.full .day-env { color: rgba(48,209,88,0.75); }
+  .day-cell.partial { background: var(--orange-dim); border-color: rgba(255,159,10,0.4); }
+  .day-cell.partial .day-num { color: var(--orange); }
+  .day-cell.partial .day-env { color: rgba(255,159,10,0.75); }
+  .day-cell.none { background: var(--red-dim); border-color: rgba(255,69,58,0.4); }
+  .day-cell.none .day-num { color: var(--red); }
+  .day-cell.none .day-env { color: rgba(255,69,58,0.75); }
+
+  .day-cell.future { opacity: 0.3; cursor: not-allowed; }
+  .day-cell.future:hover { transform: none; border-color: var(--border); background: var(--surface-2); }
+
+  /* Stats */
+  .stats-section {
+    background: var(--surface-1); border: 1px solid var(--border);
+    border-radius: var(--radius-card); padding: 26px; margin-top: 28px;
+  }
+  .stats-section h2 { font-size: 17px; font-weight: 700; letter-spacing: -0.01em; margin-bottom: 18px; }
+  .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 10px; margin-bottom: 22px; }
+  .stat-card {
+    background: var(--surface-2); border: 1px solid var(--border);
+    border-radius: var(--radius-sm); padding: 16px 12px; text-align: center;
+  }
+  .stat-card .num { font-size: 30px; font-weight: 800; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
+  .stat-card .label { font-size: 11.5px; color: var(--fg-muted); margin-top: 5px; font-weight: 500; }
+
+  .env-breakdown { border-top: 1px solid var(--border); padding-top: 18px; }
+  .env-breakdown h3 { font-size: 13px; margin-bottom: 12px; color: var(--fg-secondary); font-weight: 600; }
+  .env-row { display: flex; align-items: center; justify-content: space-between; padding: 7px 0; border-bottom: 1px solid rgba(255,255,255,0.05); gap: 10px; }
+  .env-row:last-child { border-bottom: none; }
+  .env-label { font-size: 14px; font-weight: 600; display: flex; align-items: center; gap: 8px; white-space: nowrap; }
+  .env-flag {
+    font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 6px;
+    background: var(--surface-3); border: 1px solid var(--border); color: var(--fg-secondary); letter-spacing: 0.05em;
+  }
+  .env-bars { display: flex; gap: 10px; align-items: center; }
+  .env-mini { font-size: 11.5px; font-weight: 600; font-variant-numeric: tabular-nums; }
+  .env-bar-track { width: 90px; height: 5px; background: rgba(255,255,255,0.08); border-radius: 99px; overflow: hidden; }
+  .env-bar-fill { height: 100%; background: var(--white); border-radius: 99px; }
+  .env-bar-num { font-size: 13px; font-weight: 700; min-width: 22px; text-align: right; font-variant-numeric: tabular-nums; }
+
+  .recent-entries { margin-top: 22px; border-top: 1px solid var(--border); padding-top: 18px; }
+  .recent-entries h3 { font-size: 13px; margin-bottom: 12px; color: var(--fg-secondary); font-weight: 600; }
+  .entry-row {
+    display: flex; align-items: center; gap: 12px; padding: 8px 0;
+    font-size: 13.5px; border-bottom: 1px solid rgba(255,255,255,0.05); flex-wrap: wrap;
+  }
+  .entry-row:last-child { border-bottom: none; }
+  .entry-date { font-weight: 600; min-width: 96px; font-variant-numeric: tabular-nums; }
+  .entry-status { display: flex; gap: 6px; }
+  .status-tag {
+    font-size: 11px; padding: 3px 9px; border-radius: 99px; font-weight: 600;
+    border: 1px solid transparent;
+  }
+  .status-tag.ok { background: var(--green-dim); color: var(--green); border-color: rgba(48,209,88,0.3); }
+  .status-tag.no { background: var(--red-dim); color: var(--red); border-color: rgba(255,69,58,0.3); }
+  .entry-env { margin-left: auto; font-size: 12px; color: var(--fg-secondary); font-weight: 500; }
+
+  /* Modal */
+  .modal-overlay {
+    display: none; position: fixed; inset: 0;
+    background: rgba(0,0,0,0.65); backdrop-filter: blur(8px);
+    z-index: 1000; justify-content: center; align-items: center; padding: 20px;
+  }
+  .modal-overlay.active { display: flex; }
+  .modal {
+    background: var(--surface-1); border: 1px solid var(--border-strong);
+    border-radius: 18px; padding: 28px; width: 100%; max-width: 420px;
+    box-shadow: 0 24px 80px rgba(0,0,0,0.6);
+    animation: modalIn 0.18s ease;
+  }
+  @keyframes modalIn { from { opacity: 0; transform: translateY(8px) scale(0.98); } to { opacity: 1; transform: none; } }
+  .modal h3 { font-size: 19px; margin-bottom: 4px; font-weight: 700; letter-spacing: -0.01em; }
+  .modal .date-display { color: var(--fg-muted); font-size: 13.5px; margin-bottom: 22px; }
+  .modal label {
+    display: block; font-size: 12px; font-weight: 600; margin-bottom: 9px;
+    margin-top: 18px; color: var(--fg-secondary); text-transform: uppercase; letter-spacing: 0.05em;
+  }
+  .modal label:first-of-type { margin-top: 0; }
+  .btn-group { display: flex; gap: 8px; margin-bottom: 4px; }
+  .btn-toggle {
+    flex: 1; padding: 10px 8px; border: 1px solid var(--border); border-radius: 999px;
+    background: var(--surface-2); color: var(--fg-secondary);
+    cursor: pointer; font-size: 13.5px; font-weight: 600; transition: all 0.15s ease;
+    font-family: inherit; font-feature-settings: inherit;
+  }
+  .btn-toggle:hover { border-color: var(--border-strong); color: var(--fg); }
+  .btn-toggle.selected.yes { background: var(--white); color: #07080a; border-color: var(--white); }
+  .btn-toggle.selected.no { background: var(--red-dim); color: var(--red); border-color: rgba(255,69,58,0.5); }
+  .btn-toggle.env.selected { background: var(--white); color: #07080a; border-color: var(--white); }
+  .env-group { flex-wrap: wrap; }
+  .env-group .btn-toggle { min-width: calc(50% - 4px); flex: 1 1 calc(50% - 4px); }
+
+  .modal-actions { display: flex; gap: 10px; margin-top: 26px; }
+  .btn {
+    padding: 11px 18px; border: none; border-radius: 999px;
+    font-size: 14px; font-weight: 600; cursor: pointer; transition: all 0.15s ease;
+    font-family: inherit; font-feature-settings: inherit;
+  }
+  .btn-primary { background: var(--white); color: #07080a; }
+  .btn-primary:hover { background: rgba(255,255,255,0.88); }
+  .btn-secondary { background: var(--surface-2); color: var(--fg-secondary); border: 1px solid var(--border); }
+  .btn-secondary:hover { color: var(--fg); border-color: var(--border-strong); }
+  .btn-danger { background: transparent; color: var(--red); border: 1px solid rgba(255,69,58,0.4); }
+  .btn-danger:hover { background: var(--red-dim); }
+
+  .footer {
+    margin-top: 48px; text-align: center; color: var(--fg-muted); font-size: 12.5px;
+  }
+  .footer a { color: var(--fg-secondary); text-decoration: none; }
+  .footer a:hover { color: var(--fg); }
+
+  @media (max-width: 600px) {
+    .day-cell { min-height: 42px; font-size: 11px; }
+    .day-env { font-size: 8px; }
+    .hero h1 { font-size: 30px; }
+    .stats-grid { grid-template-columns: repeat(2, 1fr); }
+    .topbar { flex-direction: column; gap: 12px; align-items: flex-start; }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="topbar">
+    <div class="brand"><div class="brand-mark">C</div> Copilot Check-in</div>
+    <div class="today-pill" id="todayPill"></div>
+  </div>
+
+  <div class="hero">
+    <h1>Copilot × Outlook<br><span class="dim">可用性打卡</span></h1>
+    <p>每日记录 Copilot 在 Outlook App 和网页版的可用情况，追踪不同网络环境下的稳定性。</p>
+  </div>
+
+  <div class="legend">
+    <div class="legend-item"><div class="legend-dot green"></div> 两个都可用</div>
+    <div class="legend-item"><div class="legend-dot orange"></div> 部分可用</div>
+    <div class="legend-item"><div class="legend-dot red"></div> 都不可用</div>
+  </div>
+
+  <div id="calendars"></div>
+
+  <div class="stats-section">
+    <h2>统计数据</h2>
+    <div class="stats-grid" id="statsGrid"></div>
+    <div class="env-breakdown" id="envBreakdown"></div>
+    <div class="recent-entries" id="recentEntries"></div>
+  </div>
+
+  <div class="footer">数据保存在本地浏览器 · copilot.slashbro.top</div>
+</div>
+
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal">
+    <h3 id="modalTitle">打卡</h3>
+    <div class="date-display" id="modalDate"></div>
+    <label>Outlook App</label>
+    <div class="btn-group" id="appGroup">
+      <button class="btn-toggle" data-val="yes">可用</button>
+      <button class="btn-toggle" data-val="no">不可用</button>
+    </div>
+    <label>Outlook 网页版</label>
+    <div class="btn-group" id="webGroup">
+      <button class="btn-toggle" data-val="yes">可用</button>
+      <button class="btn-toggle" data-val="no">不可用</button>
+    </div>
+    <label>使用环境</label>
+    <div class="btn-group env-group" id="envGroup">
+      <button class="btn-toggle env" data-val="国内">国内</button>
+      <button class="btn-toggle env" data-val="美国">美国</button>
+      <button class="btn-toggle env" data-val="墨西哥">墨西哥</button>
+      <button class="btn-toggle env" data-val="欧洲">欧洲</button>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-danger" id="btnDelete" style="display:none;">删除</button>
+      <button class="btn btn-secondary" id="btnCancel">取消</button>
+      <button class="btn btn-primary" id="btnSave">保存</button>
+    </div>
+  </div>
+</div>
+
+<script>
+var STORAGE_KEY = 'copilot_outlook_checkin';
+var ENV_CODES = { '国内': 'CN', '美国': 'US', '墨西哥': 'MX', '欧洲': 'EU' };
+var WEEKDAYS = ['日','一','二','三','四','五','六'];
+var MONTH_NAMES = ['一月','二月','三月','四月','五月','六月','七月','八月','九月','十月','十一月','十二月'];
+var records = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
+var currentDate = new Date();
+var modalState = { dateKey: '', app: null, web: null, env: null };
+
+function pad(n) { return String(n).padStart(2, '0'); }
+function dateKey(y, m, d) { return y + '-' + pad(m+1) + '-' + pad(d); }
+function formatDateCN(y, m, d) { return y + '年' + (m+1) + '月' + d + '日'; }
+function saveRecords() { localStorage.setItem(STORAGE_KEY, JSON.stringify(records)); }
+function isToday(y, m, d) { var t = new Date(); return y === t.getFullYear() && m === t.getMonth() && d === t.getDate(); }
+function isFuture(y, m, d) { var t = new Date(); t.setHours(0,0,0,0); return new Date(y, m, d) > t; }
+function getDayStatus(rec) {
+  if (!rec) return null;
+  var appOk = rec.app === 'yes', webOk = rec.web === 'yes';
+  if (appOk && webOk) return 'full';
+  if (appOk || webOk) return 'partial';
+  return 'none';
+}
+
+function renderToday() {
+  var t = new Date();
+  document.getElementById('todayPill').textContent =
+    t.getFullYear() + '年' + (t.getMonth()+1) + '月' + t.getDate() + '日 · 周' + WEEKDAYS[t.getDay()];
+}
+
+function renderCalendars() {
+  var container = document.getElementById('calendars');
+  container.innerHTML = '';
+  for (var offset = 0; offset >= -1; offset--) {
+    var d = new Date(currentDate.getFullYear(), currentDate.getMonth() + offset, 1);
+    container.appendChild(renderMonth(d.getFullYear(), d.getMonth()));
+  }
+}
+
+function renderMonth(year, month) {
+  var section = document.createElement('div');
+  section.className = 'month-section';
+  var count = 0;
+  Object.keys(records).forEach(function(k) {
+    var p = k.split('-').map(Number);
+    if (p[0] === year && (p[1]-1) === month) count++;
+  });
+  var title = document.createElement('div');
+  title.className = 'month-title';
+  title.innerHTML = year + '年 ' + MONTH_NAMES[month] + ' <span class="badge">' + count + ' 天已打卡</span>';
+  section.appendChild(title);
+
+  var cal = document.createElement('div');
+  cal.className = 'calendar';
+  WEEKDAYS.forEach(function(wd) {
+    var h = document.createElement('div');
+    h.className = 'cal-header';
+    h.textContent = wd;
+    cal.appendChild(h);
+  });
+  var firstDay = new Date(year, month, 1).getDay();
+  var daysInMonth = new Date(year, month + 1, 0).getDate();
+  for (var i = 0; i < firstDay; i++) {
+    var e = document.createElement('div');
+    e.className = 'day-cell empty';
+    cal.appendChild(e);
+  }
+  for (var day = 1; day <= daysInMonth; day++) {
+    var cell = document.createElement('div');
+    cell.className = 'day-cell';
+    var key = dateKey(year, month, day);
+    var rec = records[key];
+    var status = getDayStatus(rec);
+    if (isToday(year, month, day)) cell.classList.add('today');
+    if (isFuture(year, month, day)) cell.classList.add('future');
+    if (status) cell.classList.add(status);
+    var numDiv = document.createElement('div');
+    numDiv.className = 'day-num';
+    numDiv.textContent = day;
+    cell.appendChild(numDiv);
+    if (rec && rec.env) {
+      var envDiv = document.createElement('div');
+      envDiv.className = 'day-env';
+      envDiv.textContent = ENV_CODES[rec.env] || rec.env;
+      cell.appendChild(envDiv);
+    }
+    if (!isFuture(year, month, day)) {
+      cell.addEventListener('click', function() { openModal(key, year, month, day); });
+    }
+    cal.appendChild(cell);
+  }
+  section.appendChild(cal);
+  return section;
+}
+
+function openModal(key, y, m, d) {
+  modalState.dateKey = key;
+  var rec = records[key] || {};
+  modalState.app = rec.app || null;
+  modalState.web = rec.web || null;
+  modalState.env = rec.env || null;
+  document.getElementById('modalTitle').textContent = '打卡';
+  document.getElementById('modalDate').textContent = formatDateCN(y, m, d);
+  updateToggleGroup('appGroup', modalState.app);
+  updateToggleGroup('webGroup', modalState.web);
+  updateEnvGroup(modalState.env);
+  document.getElementById('btnDelete').style.display = rec.app ? 'block' : 'none';
+  document.getElementById('modalOverlay').classList.add('active');
+}
+
+function updateToggleGroup(groupId, val) {
+  document.querySelectorAll('#' + groupId + ' .btn-toggle').forEach(function(btn) {
+    btn.classList.remove('selected', 'yes', 'no');
+    if (btn.dataset.val === val) btn.classList.add('selected', val);
+  });
+}
+function updateEnvGroup(val) {
+  document.querySelectorAll('#envGroup .btn-toggle').forEach(function(btn) {
+    btn.classList.remove('selected');
+    if (btn.dataset.val === val) btn.classList.add('selected');
+  });
+}
+
+document.querySelectorAll('#appGroup .btn-toggle').forEach(function(btn) {
+  btn.addEventListener('click', function() { modalState.app = btn.dataset.val; updateToggleGroup('appGroup', modalState.app); });
+});
+document.querySelectorAll('#webGroup .btn-toggle').forEach(function(btn) {
+  btn.addEventListener('click', function() { modalState.web = btn.dataset.val; updateToggleGroup('webGroup', modalState.web); });
+});
+document.querySelectorAll('#envGroup .btn-toggle').forEach(function(btn) {
+  btn.addEventListener('click', function() { modalState.env = btn.dataset.val; updateEnvGroup(modalState.env); });
+});
+
+document.getElementById('btnCancel').addEventListener('click', closeModal);
+document.getElementById('btnSave').addEventListener('click', function() {
+  if (!modalState.app || !modalState.web || !modalState.env) { alert('请完成所有选项后再保存'); return; }
+  records[modalState.dateKey] = { app: modalState.app, web: modalState.web, env: modalState.env, ts: Date.now() };
+  saveRecords(); closeModal(); renderAll();
+});
+document.getElementById('btnDelete').addEventListener('click', function() {
+  if (confirm('确定删除这条打卡记录？')) { delete records[modalState.dateKey]; saveRecords(); closeModal(); renderAll(); }
+});
+function closeModal() { document.getElementById('modalOverlay').classList.remove('active'); }
+document.getElementById('modalOverlay').addEventListener('click', function(e) { if (e.target === e.currentTarget) closeModal(); });
+document.addEventListener('keydown', function(e) { if (e.key === 'Escape') closeModal(); });
+
+function renderStats() {
+  var entries = Object.entries(records).sort(function(a, b) { return b[0].localeCompare(a[0]); });
+  var total = entries.length;
+  var bothOk = 0, partial = 0, noneOk = 0, appOkCount = 0, webOkCount = 0;
+  var envStats = {};
+  entries.forEach(function(entry) {
+    var rec = entry[1];
+    var status = getDayStatus(rec);
+    if (status === 'full') bothOk++; else if (status === 'partial') partial++; else noneOk++;
+    if (rec.app === 'yes') appOkCount++;
+    if (rec.web === 'yes') webOkCount++;
+    if (rec.env) {
+      if (!envStats[rec.env]) envStats[rec.env] = { total: 0, full: 0, partial: 0, none: 0 };
+      envStats[rec.env].total++;
+      envStats[rec.env][status]++;
+    }
+  });
+
+  document.getElementById('statsGrid').innerHTML =
+    '<div class="stat-card"><div class="num" style="color:var(--green)">' + bothOk + '</div><div class="label">两个都可用</div></div>' +
+    '<div class="stat-card"><div class="num" style="color:var(--orange)">' + partial + '</div><div class="label">部分可用</div></div>' +
+    '<div class="stat-card"><div class="num" style="color:var(--red)">' + noneOk + '</div><div class="label">都不可用</div></div>' +
+    '<div class="stat-card"><div class="num" style="color:var(--white)">' + total + '</div><div class="label">总打卡天数</div></div>' +
+    '<div class="stat-card"><div class="num" style="color:var(--blue)">' + appOkCount + '</div><div class="label">App 可用天数</div></div>' +
+    '<div class="stat-card"><div class="num" style="color:var(--blue)">' + webOkCount + '</div><div class="label">网页版可用天数</div></div>';
+
+  var envHTML = '<h3>按使用环境分布</h3>';
+  var envValues = Object.values(envStats).map(function(e) { return e.total; });
+  var maxEnv = envValues.length ? Math.max.apply(null, envValues) : 1;
+  Object.entries(envStats).sort(function(a, b) { return b[1].total - a[1].total; }).forEach(function(entry) {
+    var env = entry[0], stats = entry[1];
+    var pct = (stats.total / maxEnv * 100).toFixed(0);
+    envHTML += '<div class="env-row"><div class="env-label"><span class="env-flag">' + (ENV_CODES[env] || '') + '</span>' + env + '</div>' +
+      '<div class="env-bars">' +
+      '<span class="env-mini" style="color:var(--green)">' + stats.full + ' OK</span>' +
+      '<span class="env-mini" style="color:var(--orange)">' + stats.partial + ' ~</span>' +
+      '<span class="env-mini" style="color:var(--red)">' + stats.none + ' X</span>' +
+      '<div class="env-bar-track"><div class="env-bar-fill" style="width:' + pct + '%"></div></div>' +
+      '<div class="env-bar-num">' + stats.total + '</div></div></div>';
+  });
+  document.getElementById('envBreakdown').innerHTML = envHTML;
+
+  var recentHTML = '<h3>最近打卡记录</h3>';
+  var recent = entries.slice(0, 10);
+  if (recent.length === 0) {
+    recentHTML += '<div style="color:var(--fg-muted);font-size:13px;padding:8px 0;">暂无记录，点击上方日历开始打卡</div>';
+  } else {
+    recent.forEach(function(entry) {
+      var k = entry[0], rec = entry[1];
+      var parts = k.split('-').map(Number);
+      var weekday = WEEKDAYS[new Date(parts[0], parts[1]-1, parts[2]).getDay()];
+      recentHTML += '<div class="entry-row"><div class="entry-date">' + parts[1] + '月' + parts[2] + '日 周' + weekday + '</div>' +
+        '<div class="entry-status">' +
+        '<span class="status-tag ' + (rec.app === 'yes' ? 'ok' : 'no') + '">App ' + (rec.app === 'yes' ? 'OK' : 'NO') + '</span>' +
+        '<span class="status-tag ' + (rec.web === 'yes' ? 'ok' : 'no') + '">Web ' + (rec.web === 'yes' ? 'OK' : 'NO') + '</span>' +
+        '</div><div class="entry-env">' + (ENV_CODES[rec.env] || '') + ' · ' + (rec.env || '') + '</div></div>';
+    });
+  }
+  document.getElementById('recentEntries').innerHTML = recentHTML;
+}
+
+function renderAll() { renderToday(); renderCalendars(); renderStats(); }
+renderAll();
+</script>
+</body>
+</html>
