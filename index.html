@@ -398,7 +398,7 @@
       </div>
       <button type="submit" class="auth-submit" id="authSubmit">登录</button>
     </form>
-    <div class="auth-foot">数据仅保存在本浏览器 · copilot.slashbro.top</div>
+    <div class="auth-foot">数据云端同步 · 登录后多设备一致</div>
   </div>
 </div>
 
@@ -441,7 +441,7 @@
   </div>
 
   <div class="footer">
-    数据保存在本地浏览器 · copilot.slashbro.top
+    数据云端同步，登录后多设备无缝衔接 · copilot.slashbro.top
     <br><span class="ver" id="versionTag"></span>
   </div>
 </div>
@@ -478,12 +478,13 @@
 
 <script>
 /* ===== Config & constants ===== */
-var APP_VERSION = '1.1.0';
+var APP_VERSION = '1.2.0';
 var LEGACY_KEY = 'copilot_outlook_checkin';          // v1.0 anonymous data
 var LEGACY_BACKUP_KEY = 'copilot_outlook_checkin_backup_v1';
-var USERS_KEY = 'copilot_users';
-var SESSION_KEY = 'copilot_session';
+var LOCAL_USERS_KEY = 'copilot_users';               // v1.1.0 local accounts (migration source only)
+var SESSION_KEY = 'copilot_session';                 // {user, token, ts}
 var THEME_KEY = 'copilot_theme';
+var API_BASE = '/api';
 function dataKey(user) { return 'copilot_checkin_data_' + user; }
 
 var ENV_CODES = { '国内': 'CN', '美国': 'US', '墨西哥': 'MX', '欧洲': 'EU' };
@@ -491,7 +492,7 @@ var WEEKDAYS = ['日','一','二','三','四','五','六'];
 var MONTH_NAMES = ['一月','二月','三月','四月','五月','六月','七月','八月','九月','十月','十一月','十二月'];
 
 /* ===== State ===== */
-var currentUser = null;
+var currentUser = null;   // {id, name, token}
 var records = {};
 var currentDate = new Date();
 var modalState = { dateKey: '', app: null, web: null, env: null };
@@ -504,12 +505,19 @@ function formatDateCN(y, m, d) { return y + '年' + (m+1) + '月' + d + '日'; }
 function lsGet(k) { try { return JSON.parse(localStorage.getItem(k) || 'null'); } catch (e) { return null; } }
 function lsSet(k, v) { localStorage.setItem(k, JSON.stringify(v)); }
 
+function authFetch(path, opts) {
+  opts = opts || {};
+  var headers = { 'Content-Type': 'application/json' };
+  if (currentUser && currentUser.token) headers['Authorization'] = 'Bearer ' + currentUser.token;
+  opts.headers = headers;
+  return fetch(API_BASE + path, opts);
+}
+
 async function sha256Hex(text) {
   if (window.crypto && crypto.subtle) {
     var buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(text));
     return Array.from(new Uint8Array(buf)).map(function(b) { return b.toString(16).padStart(2,'0'); }).join('');
   }
-  // fallback (non-secure context): simple djb2, only to avoid hard failure
   var h = 5381;
   for (var i = 0; i < text.length; i++) h = ((h << 5) + h + text.charCodeAt(i)) >>> 0;
   return 'fb' + h.toString(16);
@@ -531,13 +539,12 @@ function toggleTheme() {
   applyTheme(saved === 'light' ? 'light' : 'dark');
 })();
 
-/* ===== Auth ===== */
+/* ===== Auth (cloud) ===== */
 function switchAuth(mode) {
   authMode = mode;
   document.getElementById('tabLogin').classList.toggle('active', mode === 'login');
   document.getElementById('tabReg').classList.toggle('active', mode === 'reg');
   document.getElementById('authSubmit').textContent = mode === 'login' ? '登录' : '创建账号';
-  document.getElementById('authUser').parentElement.querySelector('label').textContent = '用户名';
   hideAuthError();
 }
 function showAuthError(msg) {
@@ -554,63 +561,141 @@ async function handleAuth(e) {
   if (!/^[a-zA-Z0-9_\u4e00-\u9fa5-]{2,20}$/.test(user)) { showAuthError('用户名需 2-20 个字符（字母、数字、下划线、中文）'); return false; }
   if (pass.length < 4) { showAuthError('密码至少 4 位'); return false; }
 
-  var users = lsGet(USERS_KEY) || {};
-  var lowerUser = user.toLowerCase();
+  var btn = document.getElementById('authSubmit');
+  btn.disabled = true; btn.textContent = '请稍候…';
+  hideAuthError();
 
-  if (authMode === 'reg') {
-    if (users[lowerUser]) { showAuthError('用户名已存在，请直接登录'); return false; }
-    var salt = Array.from(crypto.getRandomValues(new Uint8Array(16))).map(function(b) { return b.toString(16).padStart(2,'0'); }).join('');
-    var hash = await sha256Hex(salt + pass);
-    users[lowerUser] = { name: user, salt: salt, hash: hash, created: Date.now() };
-    lsSet(USERS_KEY, users);
-    // migrate legacy anonymous data to first registered user
-    var legacy = lsGet(LEGACY_KEY);
-    if (legacy && Object.keys(legacy).length && !lsGet(dataKey(lowerUser))) {
-      lsSet(dataKey(lowerUser), legacy);
-      lsSet(LEGACY_BACKUP_KEY, legacy);
-      localStorage.removeItem(LEGACY_KEY);
+  try {
+    var endpoint = authMode === 'reg' ? '/register' : '/login';
+    var res = await fetch(API_BASE + endpoint, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username: user, password: pass })
+    });
+    var data = {};
+    try { data = await res.json(); } catch (err) {}
+
+    if (!res.ok) {
+      // v1.1.0 本地账号无缝迁移：云端无此用户，但本地有且密码匹配 → 自动注册到云端
+      if (res.status === 404 && authMode === 'login') {
+        var localUser = (lsGet(LOCAL_USERS_KEY) || {})[user.toLowerCase()];
+        if (localUser) {
+          var localHash = await sha256Hex(localUser.salt + pass);
+          if (localHash === localUser.hash) {
+            var r2 = await fetch(API_BASE + '/register', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ username: user, password: pass })
+            });
+            var d2 = {};
+            try { d2 = await r2.json(); } catch (err) {}
+            if (r2.ok && d2.token) { await afterAuth(d2.token, d2.username); return false; }
+            showAuthError('本地账号迁移到云端失败：' + ((d2 && d2.error) || '请稍后重试'));
+            return false;
+          }
+        }
+      }
+      showAuthError(data.error || '请求失败，请重试');
+      return false;
     }
-    loginAs(lowerUser, users[lowerUser]);
-  } else {
-    var rec = users[lowerUser];
-    if (!rec) { showAuthError('用户不存在，请先注册'); return false; }
-    var hash = await sha256Hex(rec.salt + pass);
-    if (hash !== rec.hash) { showAuthError('密码错误'); return false; }
-    loginAs(lowerUser, rec);
+    await afterAuth(data.token, data.username);
+  } catch (err) {
+    showAuthError('网络错误，请检查网络后重试');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = authMode === 'login' ? '登录' : '创建账号';
   }
   return false;
 }
 
-function loginAs(lowerUser, rec) {
-  currentUser = { id: lowerUser, name: rec.name };
-  lsSet(SESSION_KEY, { user: lowerUser, ts: Date.now() });
-  records = lsGet(dataKey(lowerUser)) || {};
-  document.getElementById('userName').textContent = rec.name;
-  document.getElementById('userAvatar').textContent = rec.name.charAt(0);
+/* 登录/注册成功后：拉取云端数据 + 合并本地缓存（同一天时间戳新者胜）+ 上传本地新增 */
+async function afterAuth(token, username) {
+  currentUser = { id: username.toLowerCase(), name: username, token: token };
+  lsSet(SESSION_KEY, { user: currentUser.id, token: token, ts: Date.now() });
+
+  // 1. 收集本地数据：离线缓存 + v1.0 匿名数据
+  var local = lsGet(dataKey(currentUser.id)) || {};
+  var legacy = lsGet(LEGACY_KEY);
+  if (legacy && Object.keys(legacy).length) {
+    Object.keys(legacy).forEach(function(k) {
+      if (!local[k] || ((legacy[k].ts || 0) > (local[k].ts || 0))) local[k] = legacy[k];
+    });
+    lsSet(LEGACY_BACKUP_KEY, legacy);
+    localStorage.removeItem(LEGACY_KEY);
+  }
+
+  // 2. 拉取云端
+  var cloud = {};
+  try {
+    var res = await authFetch('/records');
+    if (res.status === 401) {
+      currentUser = null;
+      localStorage.removeItem(SESSION_KEY);
+      showAuthError('会话已过期，请重新登录');
+      return;
+    }
+    if (res.ok) cloud = ((await res.json()).records) || {};
+  } catch (err) { /* 离线：仅用本地缓存 */ }
+
+  // 3. 逐天合并，时间戳新者胜；本地较新/云端缺失的记录待上传
+  var merged = {}, toUpload = {};
+  var allDates = {};
+  Object.keys(cloud).concat(Object.keys(local)).forEach(function(d) { allDates[d] = 1; });
+  Object.keys(allDates).forEach(function(d) {
+    var c = cloud[d], l = local[d];
+    if (!c && l) { merged[d] = l; toUpload[d] = l; }
+    else if (!l && c) { merged[d] = c; }
+    else if ((l.ts || 0) >= (c.ts || 0)) { merged[d] = l; toUpload[d] = l; }
+    else { merged[d] = c; }
+  });
+
+  // 4. 上传本地新增/较新记录
+  if (Object.keys(toUpload).length) {
+    try { await authFetch('/records/batch', { method: 'POST', body: JSON.stringify({ records: toUpload }) }); } catch (err) {}
+  }
+
+  records = merged;
+  lsSet(dataKey(currentUser.id), merged);   // 更新离线缓存
+
+  document.getElementById('userName').textContent = currentUser.name;
+  document.getElementById('userAvatar').textContent = currentUser.name.charAt(0);
   document.getElementById('authScreen').classList.add('hidden');
   document.getElementById('appScreen').classList.remove('hidden');
   renderAll();
 }
 
 function logout() {
-  if (!confirm('退出登录？（打卡数据已自动保存）')) return;
+  if (!confirm('退出登录？（数据已同步到云端）')) return;
+  var token = currentUser && currentUser.token;
   currentUser = null;
   localStorage.removeItem(SESSION_KEY);
+  if (token) {
+    fetch(API_BASE + '/logout', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token } }).catch(function() {});
+  }
   document.getElementById('appScreen').classList.add('hidden');
   document.getElementById('authScreen').classList.remove('hidden');
   document.getElementById('authPass').value = '';
   switchAuth('login');
 }
 
+/* 本地缓存保存（云端同步失败时兜底，下次登录自动补传） */
 function saveRecords() { if (currentUser) lsSet(dataKey(currentUser.id), records); }
 
-/* ===== Session restore ===== */
-(function restoreSession() {
+/* ===== Session restore (verify token with server) ===== */
+(async function restoreSession() {
   var session = lsGet(SESSION_KEY);
-  if (!session || !session.user) return;
-  var users = lsGet(USERS_KEY) || {};
-  var rec = users[session.user];
-  if (rec) loginAs(session.user, rec);
+  if (!session || !session.token) return;
+  try {
+    var res = await fetch(API_BASE + '/me', { headers: { 'Authorization': 'Bearer ' + session.token } });
+    if (res.ok) {
+      var data = await res.json();
+      await afterAuth(session.token, data.username);
+    } else {
+      localStorage.removeItem(SESSION_KEY);
+    }
+  } catch (err) {
+    localStorage.removeItem(SESSION_KEY);
+  }
 })();
 
 /* ===== Calendar & stats (unchanged logic) ===== */
@@ -736,11 +821,20 @@ document.querySelectorAll('#envGroup .btn-toggle').forEach(function(btn) {
 document.getElementById('btnCancel').addEventListener('click', closeModal);
 document.getElementById('btnSave').addEventListener('click', function() {
   if (!modalState.app || !modalState.web || !modalState.env) { alert('请完成所有选项后再保存'); return; }
-  records[modalState.dateKey] = { app: modalState.app, web: modalState.web, env: modalState.env, ts: Date.now() };
-  saveRecords(); closeModal(); renderAll();
+  var rec = { app: modalState.app, web: modalState.web, env: modalState.env, ts: Date.now() };
+  records[modalState.dateKey] = rec;
+  saveRecords();                                  // 本地缓存（同步失败兜底）
+  authFetch('/records', { method: 'PUT', body: JSON.stringify(rec) }).catch(function() {});
+  closeModal(); renderAll();
 });
 document.getElementById('btnDelete').addEventListener('click', function() {
-  if (confirm('确定删除这条打卡记录？')) { delete records[modalState.dateKey]; saveRecords(); closeModal(); renderAll(); }
+  if (confirm('确定删除这条打卡记录？')) {
+    var key = modalState.dateKey;
+    delete records[key];
+    saveRecords();
+    authFetch('/records/' + key, { method: 'DELETE' }).catch(function() {});
+    closeModal(); renderAll();
+  }
 });
 function closeModal() { document.getElementById('modalOverlay').classList.remove('active'); }
 document.getElementById('modalOverlay').addEventListener('click', function(e) { if (e.target === e.currentTarget) closeModal(); });
