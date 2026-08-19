@@ -478,7 +478,7 @@
 
 <script>
 /* ===== Config & constants ===== */
-var APP_VERSION = '1.2.0';
+var APP_VERSION = '1.2.1';
 var LEGACY_KEY = 'copilot_outlook_checkin';          // v1.0 anonymous data
 var LEGACY_BACKUP_KEY = 'copilot_outlook_checkin_backup_v1';
 var LOCAL_USERS_KEY = 'copilot_users';               // v1.1.0 local accounts (migration source only)
@@ -654,6 +654,16 @@ async function afterAuth(token, username) {
     try { await authFetch('/records/batch', { method: 'POST', body: JSON.stringify({ records: toUpload }) }); } catch (err) {}
   }
 
+  // 5. 清理未来日期的脏数据（正常打卡不可能产生未来日期；且未来格子不可点击无法手动删除）
+  var t = new Date();
+  var todayStr = t.getFullYear() + '-' + pad(t.getMonth() + 1) + '-' + pad(t.getDate());
+  Object.keys(merged).forEach(function(d) {
+    if (d > todayStr) {
+      delete merged[d];
+      authFetch('/records/' + d, { method: 'DELETE' }).catch(function() {});
+    }
+  });
+
   records = merged;
   lsSet(dataKey(currentUser.id), merged);   // 更新离线缓存
 
@@ -772,7 +782,9 @@ function renderMonth(year, month) {
       cell.appendChild(envDiv);
     }
     if (!isFuture(year, month, day)) {
-      cell.addEventListener('click', function() { openModal(key, year, month, day); });
+      (function(k, y, m, d) {
+        cell.addEventListener('click', function() { openModal(k, y, m, d); });
+      })(key, year, month, day);
     }
     cal.appendChild(cell);
   }
